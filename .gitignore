@@ -1,0 +1,24 @@
+# Local config and secrets
+config.json
+cookies.json
+
+# Logs
+*.log
+
+# Build outputs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+cd-tiktok-streak
+
+# Go artifacts
+coverage.out
+*.test
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

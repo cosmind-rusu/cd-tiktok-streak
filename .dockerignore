@@ -1,0 +1,6 @@
+.git
+.gitignore
+cookies.json
+config.json
+cd-tiktok-streak.log
+node_modules
