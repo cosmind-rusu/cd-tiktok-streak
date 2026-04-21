@@ -144,6 +144,38 @@ Important:
 - Treat that binary like a secret, because anyone with the file can potentially extract the embedded session data.
 - Rebuild the binary whenever you rotate cookies or change the schedule, targets, or message.
 
+Build a real Windows bundle with the standalone `.exe` plus the Playwright driver and Chromium runtime:
+
+```powershell
+.\scripts\build-bundle.ps1 -ConfigPath .\config.json -CookiesPath .\cookies.json -OutputDir .\dist\bundle
+```
+
+Optional zip output:
+
+```powershell
+.\scripts\build-bundle.ps1 -ConfigPath .\config.json -CookiesPath .\cookies.json -OutputDir .\dist\bundle -ZipBundle
+```
+
+Bundle output:
+
+```text
+dist/
+  bundle/
+    cd-tiktok-streak.exe
+    run-cd-tiktok-streak.cmd
+    playwright-driver/
+    ms-playwright/
+```
+
+The executable auto-detects `playwright-driver/` and `ms-playwright/` next to itself, so the user can usually run either `cd-tiktok-streak.exe` or `run-cd-tiktok-streak.cmd` directly from the bundle folder.
+
+Notes about the bundle:
+
+- It is Windows-oriented right now because the packaged runtime uses `node.exe` and the local Windows Playwright cache.
+- By default the bundle only copies the latest Chromium runtime files that this bot needs.
+- If you want to copy every browser from the local Playwright cache, add `-IncludeAllBrowsers`.
+- The bundle is much larger than the standalone `.exe` because Chromium is included.
+
 ## Docker
 
 Recommended layout:

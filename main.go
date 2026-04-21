@@ -18,6 +18,8 @@ import (
 
 const cdrusuDefaultConfigFile = "config.json"
 const cdrusuPlaywrightInstallVersion = "v0.5700.1"
+const cdrusuBundledDriverDirName = "playwright-driver"
+const cdrusuBundledBrowsersDirName = "ms-playwright"
 
 var (
 	cdrusuEmbeddedConfigJSONB64  string
@@ -115,6 +117,7 @@ func main() {
 	configPath := flag.String("config", cdrusuDefaultConfigFile, "Path to config JSON")
 	runOnceOverride := flag.Bool("run-once", false, "Run immediately once regardless of schedule")
 	flag.Parse()
+	cdrusuConfigureBundledPlaywrightRuntime()
 
 	cfg, created, err := cdrusuLoadConfig(*configPath)
 	if err != nil {
@@ -228,6 +231,57 @@ func cdrusuResolvePath(baseDir string, value string) string {
 		return trimmed
 	}
 	return filepath.Join(baseDir, trimmed)
+}
+
+func cdrusuConfigureBundledPlaywrightRuntime() {
+	executablePath, err := os.Executable()
+	if err != nil {
+		return
+	}
+
+	baseDir := filepath.Dir(executablePath)
+
+	if strings.TrimSpace(os.Getenv("PLAYWRIGHT_DRIVER_PATH")) == "" {
+		driverPath := filepath.Join(baseDir, cdrusuBundledDriverDirName)
+		if cdrusuIsPlaywrightDriverDir(driverPath) {
+			_ = os.Setenv("PLAYWRIGHT_DRIVER_PATH", driverPath)
+		}
+	}
+
+	if strings.TrimSpace(os.Getenv("PLAYWRIGHT_BROWSERS_PATH")) == "" {
+		browsersPath := filepath.Join(baseDir, cdrusuBundledBrowsersDirName)
+		if cdrusuHasChildDirectories(browsersPath) {
+			_ = os.Setenv("PLAYWRIGHT_BROWSERS_PATH", browsersPath)
+		}
+	}
+}
+
+func cdrusuIsPlaywrightDriverDir(path string) bool {
+	nodePath := filepath.Join(path, "node")
+	if _, err := os.Stat(nodePath); err != nil {
+		nodePath = filepath.Join(path, "node.exe")
+	}
+	cliPath := filepath.Join(path, "package", "cli.js")
+	if _, err := os.Stat(nodePath); err != nil {
+		return false
+	}
+	if _, err := os.Stat(cliPath); err != nil {
+		return false
+	}
+	return true
+}
+
+func cdrusuHasChildDirectories(path string) bool {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func cdrusuBuildLogger(logPath string) (*log.Logger, func(), error) {
