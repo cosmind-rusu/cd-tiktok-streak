@@ -87,10 +87,27 @@ Important fields:
 - `target_users`: list of usernames or conversation targets
 - `message`: the text to send
 - `schedule.enabled`: keep the process running and send daily at `schedule.time`
+- `schedule.time`: daily execution time in `HH:MM` 24-hour format
 - `cookies_file`: exported TikTok cookies file
 - `log_file`: log output file
+- `timezone_id`: IANA timezone used by the browser and the scheduler, for example `Europe/Madrid`, `America/Mexico_City`, or `America/New_York`
 
 Relative paths such as `cookies.json` and `cd-tiktok-streak.log` are resolved from the folder where your `config.json` lives.
+
+Daily scheduler example:
+
+```json
+{
+  "run_once": false,
+  "schedule": {
+    "enabled": true,
+    "time": "21:30"
+  },
+  "timezone_id": "Europe/Madrid"
+}
+```
+
+With that config, the bot stays running and sends the message every day at `21:30` in the configured timezone, even if the Docker host is using a different timezone.
 
 ## Usage
 

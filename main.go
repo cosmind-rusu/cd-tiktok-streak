@@ -185,6 +185,9 @@ func cdrusuValidateConfig(cfg Config) error {
 	if strings.TrimSpace(cfg.CookiesFile) == "" {
 		return errors.New("cookies_file cannot be empty")
 	}
+	if _, err := cdrusuLoadLocation(cfg.TimezoneID); err != nil {
+		return fmt.Errorf("invalid timezone_id: %w", err)
+	}
 	if !cfg.RunOnce && cfg.Schedule.Enabled {
 		if _, err := cdrusuParseDailyTime(cfg.Schedule.Time); err != nil {
 			return fmt.Errorf("invalid schedule.time: %w", err)
@@ -241,20 +244,25 @@ func cdrusuRunScheduled(cfg Config, logger *log.Logger) error {
 	if err != nil {
 		return err
 	}
+	location, err := cdrusuLoadLocation(cfg.TimezoneID)
+	if err != nil {
+		return err
+	}
 
 	var lastRun string
 	for {
-		now := time.Now()
-		nextRun := time.Date(now.Year(), now.Month(), now.Day(), targetClock.Hour(), targetClock.Minute(), 0, 0, now.Location())
-		if !now.Before(nextRun) {
-			nextRun = nextRun.Add(24 * time.Hour)
-		}
+		now := time.Now().In(location)
+		nextRun := cdrusuNextScheduledRun(now, targetClock.Hour(), targetClock.Minute())
 
 		wait := time.Until(nextRun)
-		logger.Printf("next run scheduled for %s", nextRun.Format(time.RFC3339))
+		logger.Printf(
+			"next run scheduled for %s (%s)",
+			nextRun.Format(time.RFC3339),
+			location.String(),
+		)
 		time.Sleep(wait)
 
-		today := time.Now().Format("2006-01-02")
+		today := time.Now().In(location).Format("2006-01-02")
 		if today == lastRun {
 			continue
 		}
@@ -270,6 +278,27 @@ func cdrusuRunScheduled(cfg Config, logger *log.Logger) error {
 
 func cdrusuParseDailyTime(value string) (time.Time, error) {
 	return time.Parse("15:04", value)
+}
+
+func cdrusuLoadLocation(timezoneID string) (*time.Location, error) {
+	trimmed := strings.TrimSpace(timezoneID)
+	if trimmed == "" {
+		return time.Local, nil
+	}
+
+	location, err := time.LoadLocation(trimmed)
+	if err != nil {
+		return nil, err
+	}
+	return location, nil
+}
+
+func cdrusuNextScheduledRun(now time.Time, hour int, minute int) time.Time {
+	nextRun := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, 0, 0, now.Location())
+	if !now.Before(nextRun) {
+		nextRun = time.Date(now.Year(), now.Month(), now.Day()+1, hour, minute, 0, 0, now.Location())
+	}
+	return nextRun
 }
 
 func cdrusuOpenMessagesPage(page playwright.Page, url string) error {
