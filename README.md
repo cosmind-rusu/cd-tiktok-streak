@@ -130,6 +130,20 @@ Build the binary:
 go build -o cd-tiktok-streak .
 ```
 
+Build a standalone binary with embedded `config.json` and `cookies.json`:
+
+```powershell
+.\scripts\build-standalone.ps1 -ConfigPath .\config.json -CookiesPath .\cookies.json -Output .\dist\cd-tiktok-streak-standalone.exe
+```
+
+That standalone binary first looks for normal files on disk. If `config.json` or `cookies.json` are missing, it falls back to the copies embedded at build time.
+
+Important:
+
+- The embedded config and cookies are shipped inside the binary itself.
+- Treat that binary like a secret, because anyone with the file can potentially extract the embedded session data.
+- Rebuild the binary whenever you rotate cookies or change the schedule, targets, or message.
+
 ## Docker
 
 Recommended layout:

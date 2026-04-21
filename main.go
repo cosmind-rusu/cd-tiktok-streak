@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -19,6 +20,9 @@ const cdrusuDefaultConfigFile = "config.json"
 const cdrusuPlaywrightInstallVersion = "v0.5700.1"
 
 var (
+	cdrusuEmbeddedConfigJSONB64  string
+	cdrusuEmbeddedCookiesJSONB64 string
+
 	conversationListSelectors = []string{
 		"[data-e2e='dm-new-conversation-list']",
 		"[data-e2e='dm-conversation-list']",
@@ -156,6 +160,17 @@ func cdrusuLoadConfig(path string) (Config, bool, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
+			embeddedData, embeddedErr := cdrusuLoadEmbeddedFile(cdrusuEmbeddedConfigJSONB64)
+			if embeddedErr != nil {
+				return Config{}, false, fmt.Errorf("could not decode embedded config: %w", embeddedErr)
+			}
+			if len(embeddedData) > 0 {
+				if err := json.Unmarshal(embeddedData, &cfg); err != nil {
+					return Config{}, false, fmt.Errorf("embedded config is not valid JSON: %w", err)
+				}
+				return cfg, false, nil
+			}
+
 			payload, marshalErr := json.MarshalIndent(cfg, "", "  ")
 			if marshalErr != nil {
 				return Config{}, false, marshalErr
@@ -438,7 +453,19 @@ func cdrusuCloseWithTimeout(logger *log.Logger, name string, timeout time.Durati
 func cdrusuLoadCookies(path string) ([]playwright.OptionalCookie, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("could not read cookies file %q: %w", path, err)
+		if errors.Is(err, os.ErrNotExist) {
+			embeddedData, embeddedErr := cdrusuLoadEmbeddedFile(cdrusuEmbeddedCookiesJSONB64)
+			if embeddedErr != nil {
+				return nil, fmt.Errorf("could not decode embedded cookies: %w", embeddedErr)
+			}
+			if len(embeddedData) > 0 {
+				data = embeddedData
+			} else {
+				return nil, fmt.Errorf("could not read cookies file %q: %w", path, err)
+			}
+		} else {
+			return nil, fmt.Errorf("could not read cookies file %q: %w", path, err)
+		}
 	}
 
 	var exported []ExportedCookie
@@ -478,6 +505,19 @@ func cdrusuLoadCookies(path string) ([]playwright.OptionalCookie, error) {
 	}
 
 	return result, nil
+}
+
+func cdrusuLoadEmbeddedFile(encoded string) ([]byte, error) {
+	trimmed := strings.TrimSpace(encoded)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	data, err := base64.StdEncoding.DecodeString(trimmed)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func cdrusuNormalizeSameSite(value string) *playwright.SameSiteAttribute {
