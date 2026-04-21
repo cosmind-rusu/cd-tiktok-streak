@@ -21,9 +21,10 @@ It uses exported TikTok cookies instead of a username/password login flow, opens
 
 ## Project layout
 
-- [main.go](C:/Users/cosmi/Desktop/TikTok-Streak-Bot/main.go:1): main application logic
-- [config.example.json](C:/Users/cosmi/Desktop/TikTok-Streak-Bot/config.example.json:1): example configuration
-- [Dockerfile](C:/Users/cosmi/Desktop/TikTok-Streak-Bot/Dockerfile:1): container image for running the bot
+- [main.go](C:/Users/cosmi/Desktop/cd-tiktok-streak/main.go:1): main application logic
+- [config.example.json](C:/Users/cosmi/Desktop/cd-tiktok-streak/config.example.json:1): example configuration
+- [Dockerfile](C:/Users/cosmi/Desktop/cd-tiktok-streak/Dockerfile:1): container image for running the bot
+- [docker-compose.yml](C:/Users/cosmi/Desktop/cd-tiktok-streak/docker-compose.yml:1): recommended Docker deployment
 
 ## Requirements
 
@@ -89,6 +90,8 @@ Important fields:
 - `cookies_file`: exported TikTok cookies file
 - `log_file`: log output file
 
+Relative paths such as `cookies.json` and `cd-tiktok-streak.log` are resolved from the folder where your `config.json` lives.
+
 ## Usage
 
 Run once with Go:
@@ -111,20 +114,48 @@ go build -o cd-tiktok-streak .
 
 ## Docker
 
-Build the image:
+Recommended layout:
+
+```text
+docker-data/
+  config.json
+  cookies.json
+  cd-tiktok-streak.log
+```
+
+Prepare the data folder:
+
+```bash
+mkdir docker-data
+copy config.example.json docker-data\config.json
+```
+
+Put your exported TikTok cookies into `docker-data/cookies.json`, then edit `docker-data/config.json`.
+
+If you keep `"cookies_file": "cookies.json"` and `"log_file": "cd-tiktok-streak.log"` in the config, Docker will resolve both files inside `docker-data/`.
+
+Build and run with Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+Stop it:
+
+```bash
+docker compose down
+```
+
+If you prefer plain `docker run`, use the same mounted folder approach:
 
 ```bash
 docker build -t cd-tiktok-streak .
 ```
 
-Run it:
-
 ```bash
 docker run --rm ^
-  -v ${PWD}\config.json:/app/config.json ^
-  -v ${PWD}\cookies.json:/app/cookies.json ^
-  -v ${PWD}\cd-tiktok-streak.log:/app/cd-tiktok-streak.log ^
-  cd-tiktok-streak
+  -v ${PWD}\docker-data:/data ^
+  cd-tiktok-streak -config /data/config.json
 ```
 
 ## Notes

@@ -1,6 +1,7 @@
 # Local config and secrets
 config.json
 cookies.json
+docker-data/
 
 # Logs
 *.log

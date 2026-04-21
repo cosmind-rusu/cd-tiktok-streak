@@ -1,0 +1,8 @@
+services:
+  cd-tiktok-streak:
+    build: .
+    container_name: cd-tiktok-streak
+    volumes:
+      - ./docker-data:/data
+    command: ["-config", "/data/config.json"]
+    restart: unless-stopped

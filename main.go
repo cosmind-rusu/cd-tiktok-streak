@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -118,6 +119,7 @@ func main() {
 	if created {
 		log.Fatalf("created %s with default values; update it and run again", *configPath)
 	}
+	cfg = cdrusuResolveConfigPaths(cfg, *configPath)
 
 	logger, closeLog, err := cdrusuBuildLogger(cfg.LogFile)
 	if err != nil {
@@ -189,6 +191,25 @@ func cdrusuValidateConfig(cfg Config) error {
 		}
 	}
 	return nil
+}
+
+func cdrusuResolveConfigPaths(cfg Config, configPath string) Config {
+	configDir := filepath.Dir(configPath)
+	if absConfigPath, err := filepath.Abs(configPath); err == nil {
+		configDir = filepath.Dir(absConfigPath)
+	}
+
+	cfg.CookiesFile = cdrusuResolvePath(configDir, cfg.CookiesFile)
+	cfg.LogFile = cdrusuResolvePath(configDir, cfg.LogFile)
+	return cfg
+}
+
+func cdrusuResolvePath(baseDir string, value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" || filepath.IsAbs(trimmed) {
+		return trimmed
+	}
+	return filepath.Join(baseDir, trimmed)
 }
 
 func cdrusuBuildLogger(logPath string) (*log.Logger, func(), error) {
