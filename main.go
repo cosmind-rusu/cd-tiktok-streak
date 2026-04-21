@@ -101,7 +101,7 @@ func cdrusuDefaultConfig() Config {
 		LogFile:        "cd-tiktok-streak.log",
 		UserAgent:      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
 		MessagesURL:    "https://www.tiktok.com/messages",
-		BrowserChannel: "chrome",
+		BrowserChannel: "",
 		Locale:         "en-US",
 		TimezoneID:     "Europe/Madrid",
 	}
@@ -280,6 +280,14 @@ func cdrusuParseDailyTime(value string) (time.Time, error) {
 	return time.Parse("15:04", value)
 }
 
+func cdrusuOptionalString(value string) *string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	return playwright.String(trimmed)
+}
+
 func cdrusuLoadLocation(timezoneID string) (*time.Location, error) {
 	trimmed := strings.TrimSpace(timezoneID)
 	if trimmed == "" {
@@ -333,7 +341,7 @@ func cdrusuRunBot(cfg Config, logger *log.Logger) error {
 
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
 		Headless: playwright.Bool(cfg.Headless),
-		Channel:  playwright.String(cfg.BrowserChannel),
+		Channel:  cdrusuOptionalString(cfg.BrowserChannel),
 		Args: []string{
 			"--disable-blink-features=AutomationControlled",
 			"--disable-dev-shm-usage",

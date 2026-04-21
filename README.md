@@ -74,7 +74,7 @@ Example:
   "log_file": "cd-tiktok-streak.log",
   "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
   "messages_url": "https://www.tiktok.com/messages",
-  "browser_channel": "chrome",
+  "browser_channel": "",
   "locale": "en-US",
   "timezone_id": "Europe/Madrid"
 }
@@ -90,6 +90,7 @@ Important fields:
 - `schedule.time`: daily execution time in `HH:MM` 24-hour format
 - `cookies_file`: exported TikTok cookies file
 - `log_file`: log output file
+- `browser_channel`: optional Playwright browser channel; leave it empty in Docker, Railway, or Dokploy so the bundled Chromium is used
 - `timezone_id`: IANA timezone used by the browser and the scheduler, for example `Europe/Madrid`, `America/Mexico_City`, or `America/New_York`
 
 Relative paths such as `cookies.json` and `cd-tiktok-streak.log` are resolved from the folder where your `config.json` lives.
@@ -172,8 +173,59 @@ docker build -t cd-tiktok-streak .
 ```bash
 docker run --rm ^
   -v ${PWD}\docker-data:/data ^
-  cd-tiktok-streak -config /data/config.json
+  cd-tiktok-streak
 ```
+
+The container entrypoint now reads `/data/config.json` automatically. It can also create `config.json` and `cookies.json` from environment variables, which is useful on PaaS platforms.
+
+## Railway and Dokploy
+
+Recommended deployment path:
+
+- Railway: use the root `Dockerfile`. Railway auto-detects a root `Dockerfile` and uses it during deployment.
+- Dokploy: use `Dockerfile` in production, or `nixpacks.toml` if you choose the Nixpacks build type in the panel.
+
+The project includes [deploy/start.sh](C:/Users/cosmi/Desktop/cd-tiktok-streak/deploy/start.sh:1), which supports both mounted files and environment variables:
+
+- `CDRUSU_CONFIG_JSON`: raw JSON for `config.json`
+- `CDRUSU_CONFIG_JSON_B64`: base64-encoded `config.json`
+- `CDRUSU_COOKIES_JSON`: raw JSON for `cookies.json`
+- `CDRUSU_COOKIES_JSON_B64`: base64-encoded `cookies.json`
+- `CDRUSU_DATA_DIR`: optional data directory, defaults to `/data`
+
+Recommended PaaS setup:
+
+1. Set `CDRUSU_CONFIG_JSON_B64` and `CDRUSU_COOKIES_JSON_B64` as secret environment variables.
+2. In `config.json`, keep `"cookies_file": "cookies.json"` and `"log_file": "cd-tiktok-streak.log"`.
+3. Set `"run_once": false`, enable `schedule.enabled`, and choose `schedule.time` plus `timezone_id`.
+
+Example worker config for Railway or Dokploy:
+
+```json
+{
+  "run_once": false,
+  "headless": true,
+  "target_users": ["username1"],
+  "message": ".",
+  "schedule": {
+    "enabled": true,
+    "time": "21:30"
+  },
+  "cookies_file": "cookies.json",
+  "log_file": "cd-tiktok-streak.log",
+  "browser_channel": "",
+  "timezone_id": "Europe/Madrid"
+}
+```
+
+PowerShell helper to generate the base64 secrets:
+
+```powershell
+[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((Get-Content .\docker-data\config.json -Raw)))
+[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((Get-Content .\docker-data\cookies.json -Raw)))
+```
+
+Nixpacks support is included in [nixpacks.toml](C:/Users/cosmi/Desktop/cd-tiktok-streak/nixpacks.toml:1). It installs Node, downloads Playwright Chromium, and starts the app through the same `deploy/start.sh` script.
 
 ## Notes
 

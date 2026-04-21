@@ -1,0 +1,20 @@
+[variables]
+PLAYWRIGHT_BROWSERS_PATH = "/app/ms-playwright"
+
+[phases.setup]
+nixPkgs = ["...", "nodejs_20"]
+
+[phases.install]
+cmds = [
+  "go mod download",
+  "go run github.com/playwright-community/playwright-go/cmd/playwright@v0.5700.1 install --with-deps chromium"
+]
+
+[phases.build]
+cmds = [
+  "go build -o /app/cd-tiktok-streak .",
+  "chmod +x /app/deploy/start.sh"
+]
+
+[start]
+cmd = "/app/deploy/start.sh"

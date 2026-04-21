@@ -14,6 +14,7 @@ WORKDIR /app
 
 COPY --from=builder /out/cd-tiktok-streak /usr/local/bin/cd-tiktok-streak
 COPY config.example.json /app/config.example.json
+COPY deploy /app/deploy
+RUN chmod +x /app/deploy/start.sh && mkdir -p /data
 
-ENTRYPOINT ["cd-tiktok-streak"]
-CMD ["-config", "/app/config.json"]
+ENTRYPOINT ["/app/deploy/start.sh"]
